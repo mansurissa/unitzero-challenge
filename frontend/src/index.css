@@ -1,9 +1,49 @@
-:root {
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  color: #1f2328;
-  background: #f6f7f9;
+@import "tailwindcss";
+
+/* Theme after unitzero.com: IBM Plex Mono everywhere, warm paper background, near-black ink, no accent colour. */
+@theme {
+  --font-sans: "IBM Plex Mono", "SF Mono", Consolas, monospace;
+  --font-mono: "IBM Plex Mono", "SF Mono", Consolas, monospace;
+
+  --color-paper: #f7f4ed;
+  --color-ink: #1a1a1a;
+  --color-ink-bright: #000000;
+  --color-muted: #999999;
+  --color-rule: #e0e0e0;
+  --color-label: #333333;
 }
-body { margin: 0; }
-main { max-width: 640px; margin: 80px auto; padding: 16px; }
-.ok { color: #166534; font-weight: 600; }
-.bad { color: #991b1b; font-weight: 600; }
+
+@layer base {
+  html {
+    font-size: 15px;
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    @apply bg-paper text-ink font-sans leading-relaxed;
+  }
+}
+
+/* Small shared recipes so repeated form controls stay consistent without a component library. */
+@layer components {
+  .input {
+    @apply w-full rounded-none border border-rule bg-white px-3 py-2 text-sm text-ink
+           placeholder:text-muted focus:border-ink focus:outline-none;
+  }
+  .btn-primary {
+    @apply inline-flex items-center justify-center border border-ink bg-ink px-4 py-2 text-sm font-medium text-paper
+           tracking-wide hover:bg-ink-bright disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-link {
+    @apply text-sm text-ink-bright hover:underline;
+  }
+  .card {
+    @apply border border-rule bg-white/70 p-6;
+  }
+  /* "// Section" labels, as on the reference site. */
+  .section-label {
+    @apply text-base font-semibold tracking-wide text-label;
+  }
+  .section-label::before {
+    content: "// ";
+  }
+}
