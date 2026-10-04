@@ -1,0 +1,9 @@
+:root {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: #1f2328;
+  background: #f6f7f9;
+}
+body { margin: 0; }
+main { max-width: 640px; margin: 80px auto; padding: 16px; }
+.ok { color: #166534; font-weight: 600; }
+.bad { color: #991b1b; font-weight: 600; }

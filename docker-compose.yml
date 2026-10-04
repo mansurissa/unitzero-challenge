@@ -1,0 +1,52 @@
+name: request-desk
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: requestdesk
+      POSTGRES_USER: requestdesk
+      POSTGRES_PASSWORD: requestdesk
+    ports:
+      # Published only for running tests/manage.py from a local venv; unusual port to avoid clashing with a local Postgres.
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-55432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U requestdesk -d requestdesk"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  api:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgres://requestdesk:requestdesk@db:5432/requestdesk
+      DJANGO_SECRET_KEY: dev-only-not-a-secret
+      DJANGO_DEBUG: "0"
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,api
+      LOG_LEVEL: INFO
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      # Poll fast while starting, then rarely, so health checks don't flood the request log.
+      start_period: 30s
+      start_interval: 2s
+      interval: 30s
+      timeout: 3s
+      retries: 3
+
+  web:
+    build: ./frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  pgdata:
