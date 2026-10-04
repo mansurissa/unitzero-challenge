@@ -38,6 +38,8 @@ make test                        # or: docker compose run --rm api pytest
 ```
 
 Tests run against a real PostgreSQL (pytest-django creates and drops a `test_requestdesk` database).
+CI (`.github/workflows/ci.yml`) runs the suite against a Postgres service on every push, fails if a model change
+has no migration, and builds the frontend.
 
 ## API
 
@@ -167,3 +169,9 @@ frontend/
   nginx.conf  serves the build, proxies /api and /health to the api container
 seed/         users.json, episodes.csv (messy), generate_episodes.py
 ```
+
+## Stretch item
+
+Not attempted; the time went into tests and notes. The one I would pick is **real-time updates via Server-Sent
+Events** (Postgres `LISTEN/NOTIFY` → one streaming view → `EventSource` in the browser); see NOTES.md §2 for why
+SSE over WebSockets here.
