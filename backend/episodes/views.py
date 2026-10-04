@@ -1,0 +1,33 @@
+from rest_framework import mixins, viewsets
+from rest_framework.decorators import action
+from rest_framework.response import Response
+
+from accounts.permissions import IsOperatorOrAdmin
+
+from .models import Episode
+from .serializers import EpisodeSerializer
+
+
+class EpisodeViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
+    """Operator/admin view of the episode catalogue. Filters: task_name, quality, robot_id (all exact, case-insensitive)."""
+
+    permission_classes = [IsOperatorOrAdmin]
+    serializer_class = EpisodeSerializer
+
+    def get_queryset(self):
+        qs = Episode.objects.all()
+        params = self.request.query_params
+        # Values are stored normalised (lower case, single spaces) by the importer, so normalise the filters the same way.
+        if task_name := params.get("task_name"):
+            qs = qs.filter(task_name=" ".join(task_name.split()).lower())
+        if quality := params.get("quality"):
+            qs = qs.filter(quality=quality.strip().lower())
+        if robot_id := params.get("robot_id"):
+            qs = qs.filter(robot_id=robot_id.strip().lower())
+        return qs
+
+    @action(detail=False, methods=["get"], url_path="task-names")
+    def task_names(self, request):
+        """Distinct task names, for filter dropdowns."""
+        names = Episode.objects.order_by("task_name").values_list("task_name", flat=True).distinct()
+        return Response(list(names))

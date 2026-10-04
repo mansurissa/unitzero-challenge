@@ -53,6 +53,8 @@ Writes need the `X-CSRFToken` header (value of the `csrftoken` cookie). Errors a
 | `GET /api/users`, `GET /api/users/{id}` | admin | list / view users |
 | `POST /api/users` | admin | `{email, name, role, organisation?, password}` |
 | `PATCH /api/users/{id}` | admin | change `name`, `role`, `organisation`, `is_active`; admins cannot deactivate or demote themselves |
+| `GET /api/episodes`, `GET /api/episodes/{id}` | operator, admin | paginated (50/page), newest first; filters `?task_name=&quality=&robot_id=` |
+| `GET /api/episodes/task-names` | operator, admin | distinct task names, for filter dropdowns |
 
 Users are never deleted; deactivating keeps the audit trail intact and ends the user's session on their next request.
 
@@ -77,7 +79,8 @@ Local mode runs Django from `backend/.venv` and only Postgres in Docker, publish
 ```
 backend/
   config/     settings (all env-driven), urls, wsgi
-  accounts/   custom User model (email login, role, organisation)
+  accounts/   custom User model (email login, role, organisation), auth views, permissions, seed_users
+  episodes/   Episode model and the operator episode list
   core/       /health view, request-logging middleware
   tests/
 frontend/
