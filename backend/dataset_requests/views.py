@@ -4,11 +4,13 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from accounts.models import User
-from accounts.permissions import IsClient
+from accounts.permissions import IsClient, IsOperatorOrAdmin
 
 from . import services
 from .models import DatasetRequest
 from .serializers import (
+    AssignmentSerializer,
+    AssignSerializer,
     DatasetRequestCreateSerializer,
     DatasetRequestSerializer,
     StatusEventSerializer,
@@ -22,11 +24,13 @@ class DatasetRequestViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, vi
     def get_permissions(self):
         if self.action == "create":
             return [IsClient()]
+        if self.action == "unassign" or (self.action == "assignments" and self.request.method == "POST"):
+            return [IsOperatorOrAdmin()]
         return [IsAuthenticated()]
 
     def get_queryset(self):
         """Clients only ever see their own requests; a foreign id therefore 404s rather than 403s."""
-        qs = DatasetRequest.objects.select_related("client")
+        qs = services.with_assigned_count(DatasetRequest.objects.select_related("client"))
         user = self.request.user
         if user.role == User.Role.CLIENT:
             qs = qs.filter(client=user)
@@ -60,3 +64,21 @@ class DatasetRequestViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, vi
     def history(self, request, pk=None):
         obj = self.get_object()
         return Response(StatusEventSerializer(obj.events.select_related("actor"), many=True).data)
+
+    @action(detail=True, methods=["get", "post"])
+    def assignments(self, request, pk=None):
+        """GET: active assignments (owner client or ops). POST {episode_id}: assign an episode (ops only)."""
+        obj = self.get_object()
+        if request.method == "GET":
+            qs = services.active_assignments(obj).select_related("episode", "assigned_by")
+            return Response(AssignmentSerializer(qs, many=True).data)
+        data = AssignSerializer(data=request.data)
+        data.is_valid(raise_exception=True)
+        assignment = services.assign_episode(obj.id, data.validated_data["episode_id"], request.user)
+        return Response(AssignmentSerializer(assignment).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=["delete"], url_path=r"assignments/(?P<episode_id>[^/]+)")
+    def unassign(self, request, pk=None, episode_id=None):
+        obj = self.get_object()
+        services.unassign_episode(obj.id, episode_id, request.user)
+        return Response(status=status.HTTP_204_NO_CONTENT)

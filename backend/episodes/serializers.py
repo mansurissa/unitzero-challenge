@@ -4,9 +4,15 @@ from .models import Episode, ImportRun
 
 
 class EpisodeSerializer(serializers.ModelSerializer):
+    # Set by the queryset annotation in EpisodeViewSet: id of the request this episode is currently assigned to.
+    assigned_request_id = serializers.IntegerField(read_only=True, allow_null=True, default=None)
+
     class Meta:
         model = Episode
-        fields = ["id", "episode_id", "robot_id", "task_name", "recorded_at", "duration_seconds", "operator_name", "quality"]
+        fields = [
+            "id", "episode_id", "robot_id", "task_name", "recorded_at", "duration_seconds",
+            "operator_name", "quality", "assigned_request_id",
+        ]
         read_only_fields = fields
 
 

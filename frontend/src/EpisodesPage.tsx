@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { ApiError, get } from './api'
 import { QualityTag } from './components'
 import { QUALITIES, type Episode, type Page, type Quality } from './types'
@@ -76,7 +77,8 @@ export function EpisodesPage() {
               <th className="py-2 pr-4 font-medium">Recorded</th>
               <th className="py-2 pr-4 text-right font-medium">Duration</th>
               <th className="py-2 pr-4 font-medium">Operator</th>
-              <th className="py-2 font-medium">Quality</th>
+              <th className="py-2 pr-4 font-medium">Quality</th>
+              <th className="py-2 font-medium">Assigned to</th>
             </tr>
           </thead>
           <tbody>
@@ -88,7 +90,8 @@ export function EpisodesPage() {
                 <td className="py-2 pr-4 whitespace-nowrap">{new Date(e.recorded_at).toLocaleString()}</td>
                 <td className="py-2 pr-4 text-right">{e.duration_seconds}s</td>
                 <td className="py-2 pr-4">{e.operator_name || <span className="text-muted">—</span>}</td>
-                <td className="py-2"><QualityTag quality={e.quality} /></td>
+                <td className="py-2 pr-4"><QualityTag quality={e.quality} /></td>
+                <td className="py-2">{e.assigned_request_id ? <Link className="btn-link" to={`/requests/${e.assigned_request_id}`}>#{e.assigned_request_id}</Link> : <span className="text-muted">—</span>}</td>
               </tr>
             ))}
           </tbody>

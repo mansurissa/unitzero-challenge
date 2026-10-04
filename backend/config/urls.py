@@ -1,5 +1,6 @@
 from django.urls import include, path
 
+from analytics.views import analytics
 from core.views import health
 
 urlpatterns = [
@@ -7,4 +8,5 @@ urlpatterns = [
     path("api/", include("accounts.urls")),
     path("api/", include("episodes.urls")),
     path("api/", include("dataset_requests.urls")),
+    path("api/analytics", analytics, name="analytics"),
 ]

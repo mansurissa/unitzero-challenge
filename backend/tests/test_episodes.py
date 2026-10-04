@@ -50,7 +50,9 @@ def test_list_is_paginated_and_newest_first(operator_api):
     assert body["count"] == 2
     assert set(body) == {"count", "next", "previous", "results"}
     assert [e["episode_id"] for e in body["results"]] == ["EP-NEW", "EP-OLD"]
-    assert set(body["results"][0]) == {"id", "episode_id", "robot_id", "task_name", "recorded_at", "duration_seconds", "operator_name", "quality"}
+    assert set(body["results"][0]) == {
+        "id", "episode_id", "robot_id", "task_name", "recorded_at", "duration_seconds", "operator_name", "quality", "assigned_request_id",
+    }
 
 
 def test_filters(operator_api, catalogue):

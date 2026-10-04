@@ -1,8 +1,10 @@
 from django.utils import timezone
 from rest_framework import serializers
 
+from episodes.serializers import EpisodeSerializer
+
 from . import services
-from .models import DatasetRequest, StatusEvent
+from .models import Assignment, DatasetRequest, StatusEvent
 
 
 class ClientSummarySerializer(serializers.Serializer):
@@ -53,6 +55,20 @@ class DatasetRequestCreateSerializer(serializers.Serializer):
 class TransitionSerializer(serializers.Serializer):
     status = serializers.ChoiceField(choices=DatasetRequest.Status.choices)
     note = serializers.CharField(required=False, allow_blank=True, default="")
+
+
+class AssignSerializer(serializers.Serializer):
+    episode_id = serializers.CharField(max_length=32)
+
+
+class AssignmentSerializer(serializers.ModelSerializer):
+    episode = EpisodeSerializer(read_only=True)
+    assigned_by = serializers.SlugRelatedField(slug_field="email", read_only=True)
+
+    class Meta:
+        model = Assignment
+        fields = ["id", "episode", "assigned_by", "assigned_at"]
+        read_only_fields = fields
 
 
 class StatusEventSerializer(serializers.ModelSerializer):

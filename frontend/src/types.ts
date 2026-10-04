@@ -21,6 +21,15 @@ export interface Episode {
   duration_seconds: number
   operator_name: string
   quality: Quality
+  /** Id of the request this episode is currently assigned to, or null. */
+  assigned_request_id: number | null
+}
+
+export interface Assignment {
+  id: number
+  episode: Episode
+  assigned_by: string | null
+  assigned_at: string
 }
 
 export type Status = 'submitted' | 'in_progress' | 'delivered' | 'accepted' | 'rejected'

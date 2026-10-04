@@ -57,3 +57,29 @@ class StatusEvent(models.Model):
 
     def __str__(self):
         return f"#{self.request_id}: {self.from_status or '∅'} → {self.to_status}"
+
+
+class Assignment(models.Model):
+    """An episode attached to a request. Unassigning keeps the row (history) and sets unassigned_at."""
+
+    request = models.ForeignKey(DatasetRequest, on_delete=models.CASCADE, related_name="assignments")
+    episode = models.ForeignKey("episodes.Episode", on_delete=models.PROTECT, related_name="assignments")
+    assigned_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, related_name="+")
+    assigned_at = models.DateTimeField(default=timezone.now)
+    unassigned_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    unassigned_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["assigned_at", "id"]
+        constraints = [
+            # The database, not Python, guarantees "an episode is assigned to at most one request at a time".
+            models.UniqueConstraint(
+                fields=["episode"], condition=Q(unassigned_at__isnull=True), name="one_active_assignment_per_episode"
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["request"], condition=Q(unassigned_at__isnull=True), name="assignment_active_request_idx"),
+        ]
+
+    def __str__(self):
+        return f"{self.episode_id} → request #{self.request_id}"
