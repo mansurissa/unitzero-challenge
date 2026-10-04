@@ -6,4 +6,5 @@ urlpatterns = [
     path("health", health, name="health"),
     path("api/", include("accounts.urls")),
     path("api/", include("episodes.urls")),
+    path("api/", include("dataset_requests.urls")),
 ]

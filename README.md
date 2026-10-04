@@ -9,7 +9,7 @@ Backend: Django + Django REST Framework + PostgreSQL. Frontend: React (Vite + Ty
 docker compose up --build        # or: make up
 ```
 
-From a clean clone this starts PostgreSQL, applies migrations, creates the seed users, and serves:
+From a clean clone this starts PostgreSQL, applies migrations, creates the seed users, imports `seed/episodes.csv`, and serves:
 
 | | URL |
 |---|---|
@@ -55,8 +55,44 @@ Writes need the `X-CSRFToken` header (value of the `csrftoken` cookie). Errors a
 | `PATCH /api/users/{id}` | admin | change `name`, `role`, `organisation`, `is_active`; admins cannot deactivate or demote themselves |
 | `GET /api/episodes`, `GET /api/episodes/{id}` | operator, admin | paginated (50/page), newest first; filters `?task_name=&quality=&robot_id=` |
 | `GET /api/episodes/task-names` | operator, admin | distinct task names, for filter dropdowns |
+| `GET /api/imports`, `GET /api/imports/{id}` | operator, admin | past CSV imports with their full reports |
+| `GET /api/requests`, `GET /api/requests/{id}` | client (own only), operator, admin | `?status=&client=` filters; another client's id → 404 |
+| `POST /api/requests` | client | `{task_name, episodes_requested, deadline, notes?}` |
+| `POST /api/requests/{id}/transition` | per transition table below | `{status, note?}` → 400 `invalid_transition`, 403 `not_allowed`, 400 `not_enough_episodes` |
+| `GET /api/requests/{id}/history` | owner client, operator, admin | status events with actor and timestamp |
 
 Users are never deleted; deactivating keeps the audit trail intact and ends the user's session on their next request.
+
+### Request workflow
+
+```
+submitted → in_progress → delivered → accepted
+   (ops)        (ops)        (client) ↘ rejected → in_progress  (ops, rework)
+                                         (client)
+```
+
+Only these moves exist, and only the named roles may make them; the server enforces both. Moving to
+`delivered` requires at least `episodes_requested` assigned episodes. Every change writes a `StatusEvent`
+(from, to, who, when, note). Responses include `allowed_transitions` for the current user so the UI shows only
+the buttons that will succeed. `delivered_at` records the first delivery; rework does not reset it.
+
+## CSV import
+
+```bash
+make import FILE=seed/episodes.csv                                            # local
+docker compose exec api python manage.py import_episodes /seed/episodes.csv   # in Docker (also runs on start-up)
+```
+
+Rows are normalised (whitespace, casing, several timestamp formats; naive timestamps are treated as UTC) and
+validated (known robot, valid quality, integer duration 1–3600 s, date not in the future). The command prints a
+summary and every skipped line with its reason: `empty_row`, `malformed_row`, `missing_*`, `invalid_*`,
+`unknown_robot`, `recorded_in_future`, `duration_out_of_range`, `duplicate_in_file`,
+`conflicting_duplicate_in_file`, `already_imported`, `conflicts_with_existing`.
+
+Running the same file again inserts nothing. A row that differs from a stored episode is **reported, not
+applied** (see NOTES.md). Each run is saved as an `ImportRun` and visible at `/api/imports`.
+
+The seed file: 191 rows → 172 imported, 19 skipped, 1 warning (missing operator name, imported anyway).
 
 ## Development
 
@@ -67,6 +103,7 @@ Users are never deleted; deactivating keeps the audit trail intact and ends the 
 | `make server` | Backend locally with auto-reload on :8000 (creates the venv and `.env`, starts Postgres, migrates). `PORT=8001` to change |
 | `make web` | Frontend dev server on :5173, proxying `/api` and `/health` to :8000 |
 | `make seed` | Create/update the seed accounts locally |
+| `make import FILE=…` | Run the CSV importer locally |
 | `make migrations` / `make migrate` | Create / apply migrations (`APP=accounts` to limit) |
 | `make test-local` | Fast test run from the venv (`ARGS="-k health"` to filter) |
 | `make shell` / `make dbshell` | Django shell / psql |
@@ -80,11 +117,12 @@ Local mode runs Django from `backend/.venv` and only Postgres in Docker, publish
 backend/
   config/     settings (all env-driven), urls, wsgi
   accounts/   custom User model (email login, role, organisation), auth views, permissions, seed_users
-  episodes/   Episode model and the operator episode list
+  episodes/   Episode + ImportRun models, importer.py, import_episodes command, list endpoints
+  dataset_requests/  DatasetRequest + StatusEvent, services.py (transition table and rules), views
   core/       /health view, request-logging middleware
   tests/
 frontend/
-  src/        App.tsx (hello page that calls /health), main.tsx, index.css
+  src/        App.tsx (routes + nav), LoginPage, RequestsPage, RequestDetailPage, EpisodesPage, api.ts, auth.tsx
   nginx.conf  serves the build, proxies /api and /health to the api container
 seed/         users.json, episodes.csv (messy), generate_episodes.py
 ```

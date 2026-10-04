@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 
 
@@ -35,3 +36,21 @@ class Episode(models.Model):
 
     def __str__(self):
         return self.episode_id
+
+
+class ImportRun(models.Model):
+    """One execution of the CSV importer, with its full report, so operators can audit what happened."""
+
+    started_at = models.DateTimeField(auto_now_add=True)
+    started_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
+    source = models.CharField(max_length=255)
+    total_rows = models.PositiveIntegerField()
+    inserted = models.PositiveIntegerField()
+    skipped = models.PositiveIntegerField()
+    report = models.JSONField()
+
+    class Meta:
+        ordering = ["-started_at"]
+
+    def __str__(self):
+        return f"{self.source}: {self.inserted} inserted, {self.skipped} skipped"

@@ -4,8 +4,8 @@ from rest_framework.response import Response
 
 from accounts.permissions import IsOperatorOrAdmin
 
-from .models import Episode
-from .serializers import EpisodeSerializer
+from .models import Episode, ImportRun
+from .serializers import EpisodeSerializer, ImportRunSerializer
 
 
 class EpisodeViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
@@ -31,3 +31,11 @@ class EpisodeViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.
         """Distinct task names, for filter dropdowns."""
         names = Episode.objects.order_by("task_name").values_list("task_name", flat=True).distinct()
         return Response(list(names))
+
+
+class ImportRunViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
+    """Past CSV imports with their full reports, newest first."""
+
+    permission_classes = [IsOperatorOrAdmin]
+    serializer_class = ImportRunSerializer
+    queryset = ImportRun.objects.select_related("started_by")
