@@ -14,7 +14,7 @@ MANAGE  := cd backend && .venv/bin/python manage.py
 PORT    ?= 8000
 
 .DEFAULT_GOAL := help
-.PHONY: help install db server web migrate migrations check-migrations shell dbshell test-local \
+.PHONY: help install db server web seed migrate migrations check-migrations shell dbshell test-local \
         up down reset logs test clean
 
 help: ## Show available targets
@@ -49,6 +49,9 @@ frontend/node_modules/.installed: frontend/package.json frontend/package-lock.js
 
 web: frontend/node_modules/.installed ## Run the frontend dev server on :5173 (proxies /api to :8000)
 	@cd frontend && npm run dev
+
+seed: install db ## Create/update the seed accounts from seed/users.json
+	@$(MANAGE) seed_users ../seed/users.json
 
 migrate: install db ## Apply migrations to the database
 	$(MANAGE) migrate

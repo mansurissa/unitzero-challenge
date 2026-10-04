@@ -26,6 +26,9 @@ services:
       DJANGO_DEBUG: "0"
       DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,api
       LOG_LEVEL: INFO
+      SEED_ON_START: "1"
+    volumes:
+      - ./seed:/seed:ro
     ports:
       - "8000:8000"
     depends_on:
